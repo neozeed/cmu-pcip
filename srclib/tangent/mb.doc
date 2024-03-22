@@ -1,0 +1,35 @@
+This is a driver for using the Tangent Technologies MacBridge board as an
+externally clocked syncronous serial line (such as 64kb).  You must first do
+some modifications to the board.  First, remove the faceplate and move the
+connecter from J2 to J3 at the bottom of the board.  Next, remove the crystal
+Y1.  Lastly, cut the jumper from JY1 to JY2 and solder a new jumper from JY2
+to JY3.  Now, the pinout on the connector J3 is:
+
+1 TxD +
+2 TxD -  
+3 RxD +
+4 RxD -
+5 RxClk +
+6 RxClk -
+7 GND
+8 TxClk +
+9 TxClk -
+
+Some interesting things about the board:
+
+Rx DMA channel #1 (No Tx DMA channel unfortunately!)
+Interrupt channel #3
+
+DTRA enables tx driver
+DTRB enables DMA
+RTSA enables interrupts
+RTSB enables I/O ready - wait line
+
+Chn A CTL address = 0x340
+Chn B CTL address = 0x341
+Chn A data address = 0x342
+Chn B data address = 0x343
+Clear DMA request after last  = 0x344
+
+half duplex DMA
+xtal 3.6864 MHz

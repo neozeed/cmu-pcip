@@ -1,0 +1,52 @@
+
+	TRW PC 2000 Ethernet Driver For MIT-CMU PC/IP.
+
+The files in this directory are a driver for the TRW PC 2000 Ethernet
+board for IBM PC and PC/AT class machines.  The driver supports all
+of the normal PC/IP applications, including "netwatch".
+
+The PC 2000 board is a high performance Ethernet adaptor.  Its
+features include:
+	-  Intel 82586 LAN controller.
+	-  128K or 256K of on-board memory.
+	-  Standard AUI (15 pin) and Cheapernet net interfaces.
+	-  8 and 16 bit wide buss interface.
+	-  Board memory accessible through a memory window or through
+	   I/O ports (8 or 16 bit wide) with auto-incrementing memory
+	   addresses.
+	-  Optional Intel 80186 on-board processor.
+
+The board and driver are well suited to heavy traffic conditions with
+closely spaced packets.  For most applications, the on-board buffers
+can hold up to 73 full-sized received packets.  For netwatch, the
+number of packets awaiting software processing can exceed 1100.
+(This is in addition to netwatch's own 512 packet buffers.)
+
+Since the 82586 can send packets with nearly the minimum legal
+interframe spacing, use of chaining could swamp other machines with
+slower interfaces.  To avoid this problem, the driver avoids use of
+the 82586's transmit chaining capability.
+
+The driver uses 128K of board memory.  Board memory access is by I/O
+ports.  The board memory is never mapped into PC memory to avoid
+potential conflicts with other hardware (in particular EGA display
+controllers or EMS memory.)
+
+The driver is intended to be compiled using the following tools:
+	Polytron PVCS (optional)
+	Polytron Polymake (other "makes" may be used with appropriate
+			   revisions of the makefile.)
+        Microsoft Macro Assembler version 4, 5, or 5.1.
+	Microsoft C, version 5.
+
+There is one particularly unusual characteristic of the driver worthy
+of special mention: Each time the driver starts, it performs a time
+domain reflectometer (TDR) check on the network.  This has not yet
+been found to cause any problems -- typically other nodes perceive
+the TDR signal as a mal-formed error packet.  However, on broadband
+networks, the TDR function sometimes indicates a failure when none
+really exists.  To override the TDR check, the driver uses the
+transmit DMA value in the customized configuration.  (The driver does
+not use DMA, so the transmit DMA setting is otherwise unused.)  If
+the transmit DMA is set to zero, the TDR check will be performed.  If
+set to non-zero, the TDR check will be bypassed.

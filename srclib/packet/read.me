@@ -1,0 +1,90 @@
+		PACKET DRIVER DRIVER FOR PC-IP
+
+The various files in this archive comprise a driver for the CMU
+version of PC-IP.  Rather than using a physical device, this driver
+uses the services of a "packet driver" as defined by John Romkey.
+
+Like other PC-IP device drivers, these files should be placed in a
+subdirectory of SRCLIB.  On my machine I use ...\SRCLIB\PKT.
+
+The code is compiled using Microsoft C (version 5.1) and Microsoft
+Macro Assembler, Masm (version 5.1).
+
+Makefiles are included for use with Polytron's make utility.  These
+makefiles are fairly Un*x-like and can probably be easily converted
+to other reasonable "make" utilities.
+
+The compiled code ends up in a library named "pkt4n.lib".  The
+makefile will copy this to the ...\LIB subdirectory.  You will have
+to modify the makefiles of in the various ...\SRCCMD directories to
+use this new library.  For example, here is how I modified the
+makefile (Microsoft format) in ...\SRCCMD\PING.  (Since the 'p'
+prefix is already in use, I adopted 'd' [for packet Driver] for the
+.exe files which use this driver.):
+
+dping.exe: ping.obj
+	link ping cmd, dping, dping/map/noi, domain4n udp4n pkt4n ip4n net4n task4n pc4n h194n
+#	mapsym dping
+	command /c copy dping.exe ..\..\obj.4n
+
+
+A couple of additional programs are included:
+	pdstat	-- Asks a packet driver for status.
+	pdkill	-- Tries to kill off a packet driver.
+	smash   -- Tries to send a burst of packets.  (This program was
+		   done in a couple of minutes and ought not to be used
+		   unless you look at the code and determine that that
+		   addresses it uses are NOT on your network.)
+
+This code is not in the public domain in the same way that most of
+the PC-IP code is not in the public domain -- see the copyright
+notice for details.
+
+If you have any problems or comments, please contact me at:
+		auerbach@csl.sri.com
+
+		or
+
+		Karl Auerbach
+		Epilogue Technology Corporation
+		P.O. Box 5432
+		Redwood City, CA   94063
+
+
+
+Here's a list of the files:
+
+--w   3047   4 Mar  4:32p enet.c      
+--w    410  20 Aug  5:52p enet.obj    
+--w    957   4 Mar  4:32p etc-note.h  
+--w   8151   4 Mar  4:32p et_arp.c    
+--w   3187  20 Aug  5:52p et_arp.obj  
+--w    942   4 Mar  4:32p et_close.c  
+--w    337  20 Aug  5:52p et_close.obj
+--w   3103   4 Mar  4:32p et_demux.c  
+--w    896  20 Aug  5:52p et_demux.obj
+--w   3764   4 Mar  4:32p et_init.c   
+--w   1501  20 Aug  5:52p et_init.obj 
+--w   1697   4 Mar  4:32p et_int.c    
+--w    624  20 Aug  5:53p et_int.obj  
+--w  13940   2 Aug  6:34p et_pkt.asm  
+--w    905   4 Mar  4:33p et_pkt.h    
+--w   1693  20 Aug  5:53p et_pkt.obj  
+--w   2634   4 Mar  4:32p et_send.c   
+--w    587  20 Aug  5:53p et_send.obj 
+--w   3397   7 Mar 12:43p et_stat.c   
+--w   1471  20 Aug  5:53p et_stat.obj 
+--w   1328   3 Jun  4:09p makefile    
+--w    973   4 Mar  4:32p pdkill.c    
+--w   8717  20 Aug  5:53p pdkill.exe  
+--w    697  20 Aug  5:53p pdkill.obj  
+--w   2683   7 Mar 12:43p pdstat.c    
+--w   9415  20 Aug  5:53p pdstat.exe  
+--w   1492  20 Aug  5:53p pdstat.obj  
+--w   6026   7 Mar 12:43p pkt.h       
+--w  12387  20 Aug  5:53p pkt4n.lib   
+--w    140   1 Mar  1:10p pktlib.arf  
+--w   1663  19 Jun  6:44p smash.c     
+--w  10163  20 Aug  5:53p smash.exe   
+--w    872  20 Aug  5:53p smash.obj   
+

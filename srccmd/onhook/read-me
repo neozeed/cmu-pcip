@@ -1,0 +1,6 @@
+The programs onhook and offhook are written in IBM assembler language.
+The source files onhook.asm and offhook.asm should be moved to an IBM
+PC or XT for assembly, loading, and conversion from .exe to .com form.
+They do not use a stack, so the loader warning that no stack has been
+allocated can be ignored.
+

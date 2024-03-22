@@ -1,0 +1,929 @@
+
+
+
+
+
+	   ___________________________________________________________
+
+
+
+
+
+
+		       PC/TCP Packet Driver Specification
+
+
+
+	   ___________________________________________________________
+
+
+
+
+
+
+
+		 Revision 1.05; document updated April 6, 1988
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	   ___________________________________________________________
+
+
+
+
+			       FTP Software, Inc.
+
+
+				 Cambridge, MA
+
+	   ___________________________________________________________
+
+
+
+
+
+
+
+
+
+		       PC/TCP Packet Driver Specification
+
+
+
+	  Note:  this document is public domain and may be distributed
+	  freely and without  fee  or permission.  FTP Software's name
+	  and  this notice must appear on  any	reproduction  of  this
+	  document.
+
+	  Support of  a hardware interface, or mention of an interface
+	  manufacturer, by the Packet  Driver  specification  does not
+	  necessarily indicate	that  the  manufacturer  endorses this
+	  specification.
+
+
+	  1  Introduction and Motivation
+
+
+	  This document describes  the programming interface to PC/TCP
+	  packet drivers.  Packet  drivers  provide  a	simple, common
+	  programming  interface that allows multiple applications  to
+	  share  a  network  interface	at  the data link level.   The
+	  packet  drivers demultiplex  incoming  packets  amongst  the
+	  applications by using the network media type field.
+
+	  Different  versions  of  PC/TCP  exist for different network
+	  media (Ethernet, 802.5 ring, serial lines), but  through the
+	  use of the packet  driver,  the actual brand or model of the
+	  network interface can be hidden from the application.
+
+	  The packet driver provides calls  to	initiate  access  to a
+	  specific packet type, to end access to it, to send a packet,
+	  to  get  statistics  on  the	network interface and  to  get
+	  information about the interface.
+
+	  Protocol  implementations  that use the  packet  driver  can
+	  completely coexist on a PC and can make use of one another's
+	  services, whereas multiple applications which do not use the
+	  driver do not coexist on  one machine properly.  Through use
+	  of the packet driver, a user could run TCP/IP, Decnet, and a
+	  proprietary  protocol  implementation   such	 as  Banyan's,
+	  LifeNet's,  Novell's	or  3COM's  without  the  difficulties
+	  associated with preempting the network interface.
+
+	  Applications which use the packet driver can also run on new
+	  network hardware of the same class  without  being modified;
+	  only a new packet driver need be supplied.
+
+	  Two  levels  of  packet  drivers  are   described   in  this
+	  specification.   The first is the basic packet driver, which
+	  provides minimal  functionality  but	should	be  simple  to
+
+
+				      - 2 -
+
+
+
+
+	  implement and which uses very few host resources.  The basic
+	  driver provides operations to broadcast and receive packets.
+	  The second driver is the  extended packet driver, which is a
+	  superset of  the basic driver.  The extended driver supports
+	  less commonly used functions of the  network	interface such
+	  as  multicast, and also gathers statistics  on  use  of  the
+	  interface and makes these available to the application.
+
+	  Functions which are available in  only  the  extended packet
+	  driver are noted as such in their descriptions.    All basic
+	  packet  driver  functions  are  available  in  the  extended
+	  driver.
+
+
+	  2  Identifying network interfaces
+
+
+	  Network interfaces  are  named  by  a  triplet  of integers,
+	  <class, type, number>.  The first is the class of interface.
+	  The class tells what	kind  of  media  the interface is for:
+	  IEEE	802.3/Ethernet,  IEEE  802.5/Token  Ring,   ProNET-10,
+	  Broadband Ethernet, Appletalk, serial line, etc.
+
+	  The second number is the  type of interface:	this specifies
+	  a particular	instance of an interface supporting a class of
+	  medium.  Interface  types  for  Ethernet  might  name  these
+	  interfaces:	 3COM  3C501   or   3C505,   Interlan  NI5010,
+	  Univation,  BICC  Data  Networks ISOLAN, Ungermann-Bass NIC,
+	  etc.	  Interface  types  for  IEEE 802.5 might  name  these
+	  interfaces:  IBM Token Ring adapter, Proteon p1340, etc.
+
+	  The last number is the interface number.  If	a  machine  is
+	  equipped with more than one interface of a  class  and type,
+	  the interfaces must be numbered to distinguish between them.
+
+	  An appendix details constants  for  classes  and types.  The
+	  class of an interface is an 8-bit integer, and its type is a
+	  16 bit integer.  Class and type constants are managed by FTP
+	  Software.    Contact	FTP  to  register a new class or  type
+	  number.
+
+	  The  type  0xFFFF  is  a  wildcard  type  which matches  any
+	  interface  in the specified class.   It  is  unnecessary  to
+	  wildcard interface numbers, as 0 will  always  correspond to
+	  the first interface of the specified class and type.
+
+	  This specification  has  no  provision  for  the  support of
+	  multiple  network  interfaces  (with	similar  or  different
+	  characteristics)  via a single Packet Driver and  associated
+	  interrupt.  We feel  that  this  issue  is best addressed by
+	  loading  several  Packet Drivers, one  per  interface,  with
+	  different interrupts (although  all  may  be	included  in a
+	  single  TSR  software  module).   Applications software must
+	  check the class and type returned from an driver_info() call
+	  already,  to make sure that the Packet  Driver  is  for  the
+
+
+				      - 3 -
+
+
+
+
+	  correct  media  and  packet  format.	  This	can easily  be
+	  generalized by searching for another	Packet	Driver	if the
+	  first is not of the right kind.
+
+
+	  3  Initiating driver operations
+
+
+	  The packet driver is invoked via a software interrupt in the
+	  range 0x60 through 0x80.  This document does	not  specify a
+	  particular interrupt, but describes a mechanism for locating
+	  which  interrupt the driver uses.   The  interrupt  must  be
+	  configurable	to  avoid   conflicts  with  other  pieces  of
+	  software  that  also use software  interrupts.  The  program
+	  which  installs  the	 packet  driver  should  provide  some
+	  mechanism for the user to specify the interrupt.
+
+	  The handler for the interrupt will start with a 3  byte jump
+	  instruction, followed  by  the  null-terminated  text string
+	  "PKT DRVR". To find the  interrupt being used by the driver,
+	  an application should scan through the handlers  for vectors
+	  0x60	through  0x80  until it finds one with the text string
+	  "PKT DRVR" in it.
+
+
+	  4  Programming interface
+
+
+	  All  functions  are  accessed  via  the  software  interrupt
+	  determined to be the driver's  via  the  mechanism described
+	  earlier.  On entry,  register  AH  contains  the code of the
+	  function desired.
+
+	  The handle is an  arbitrary  integer	value  associated with
+	  each type that  has  been  established  via  the access_type
+	  call. Internally to the packet driver, it will probably be a
+	  pointer, or a table offset.	 The  application  calling the
+	  packet driver cannot depend on  it  assuming	any particular
+	  range, or any other characteristics.
+
+	  Note that some  of  the functions defined below are labelled
+	  as  extended	driver	functions.    Because  these  are  not
+	  required for basic network operations,  their implementation
+	  may be considered  optional.	 Programs wishing to use these
+	  functions  should use the driver_info function to  determine
+	  if they are available in a given packet driver.
+
+
+	  4.1  Entry conditions
+
+
+	  FTP Software applications which call the  packet  driver are
+	  coded in Microsoft  C  and assembly language.  All necessary
+	  registers  are  saved  by  FTP's  routines  before  the  INT
+	  instruction  to call the packet driver  is  executed.    Our
+
+
+				      - 4 -
+
+
+
+
+	  receiver() functions behave as  follows:    DS and the flags
+	  are  saved  and  restored.	All  other  registers  may  be
+	  modified,  and  should  be saved by the  packet  driver,  if
+	  necessary.  Processor interrupts may be enabled while in the
+	  routine  (only  by  older versions of PC/TCP).    On	entry,
+	  receiver() switches to a local stack (re-entrant).
+
+
+	  4.2  driver_info()
+
+		  driver_info(handle)	  AH == 1 AL == FF
+			  int handle;	  BX
+
+	  error return:
+		  carry flag set
+		  error code		  DH
+		  possible errors:
+			  BAD_HANDLE
+
+	  non-error return:
+		  carry flag clear
+		  version		  BX
+		  class                   CH
+		  type			  DX
+		  number		  CL
+		  name			  DS:SI
+		  basic/extended	  AL
+					  1 == basic, 2 == extended,
+					  FF == not installed
+
+	  This	function  returns  information	about	the  interface
+	  associated with handle, which must  have  been  obtained via
+	  access_type().
+
+
+	  4.3  access_type()
+
+		  int access_type(if_class, if_type, if_number, type,
+				typelen, receiver) AH == 2
+			  int if_class;                   AL
+			  int if_type;			  BX
+			  int if_number;		  DL
+			  char far *type;		  DS:SI
+			  unsigned typelen;		  CX
+			  int (far *receiver)();	  ES:DI
+
+	  error return:
+		  carry flag set
+		  error code			  DH
+		  possible errors:
+			  BAD_HANDLE
+			  NO_CLASS
+			  NO_TYPE
+			  NO_NUMBER
+			  BAD_TYPE
+
+
+				      - 5 -
+
+
+
+
+			  NO_SPACE
+			  TYPE_INUSE
+
+	  non-error return:
+		  carry flag clear
+		  handle			  AX
+
+	  receiver call:
+		  (*receiver)(handle, flag, len [, buffer])
+			  int handle;		  BX
+			  int flag;		  AX
+			  unsigned len;           CX
+		  if AX == 1,
+			  char far *buffer;	  DS:SI
+
+	  Initiates  access to packets of the  specified  type.    The
+	  argument type is  a  pointer to a packet type specification.
+	  The  argument typelen is the length in  bytes  of  the  type
+	  field.  The argument receiver is a pointer  to  a subroutine
+	  which is called when a packet is received.
+
+	  When a packet is received, receiver is called  twice	by the
+	  packet driver.  The first time is to request a buffer   from
+	  the  application  to	copy the packet into.  AX == 0 on this
+	  call. The  application should return a pointer to the buffer
+	  in ES:DI.  If the application has no buffers, it  may return
+	  0:0  in  ES:DI,  and the driver should throw away the packet
+	  and not perform the second call.
+
+	  It is important that the packet length (CX) be valid	on the
+	  AX == 0 call, so that the receiver can allocate a  buffer of
+	  the proper size.  This length (as well as the copy performed
+	  prior to the AX == 1 call) must include the  Ethernet header
+	  and all received data, but not the trailing checksum.
+
+	  On the second call, AX ==  1.   This call indicates that the
+	  copy has been completed,    and the application may do as it
+	  wishes  with the buffer.  The buffer	that  the  packet  was
+	  copied into is pointed to by DS:SI.
+
+
+	  4.4  release_type()
+
+		  int release_type(handle)	  AH == 3
+			  int handle;		  BX
+
+	  error return:
+		  carry flag set
+		  error code			  DH
+		  possible errors:
+			  BAD_HANDLE
+
+	  non-error return:
+		  carry flag clear
+
+
+
+				      - 6 -
+
+
+
+
+	  This function  ends  access  to  packets  associated	with a
+	  handle returned by  access_type().   The handle is no longer
+	  valid.
+
+
+	  4.5  send_pkt()
+
+		  int send_pkt(buffer, length)	  AH == 4
+			  char far *buffer;	  DS:SI
+			  unsigned length;	  CX
+
+	  error return:
+		  carry flag set
+		  error code			  DH
+		  possible errors:
+			  CANT_SEND
+
+	  non-error return:
+		  carry flag clear
+
+	  Transmits length bytes of data,  starting  at  buffer.   The
+	  application  must supply the entire packet, including  local
+	  network  headers.  Any MAC or LLC  information  in  use  for
+	  packet demultiplexing (e.g.  the  DEC-Intel-Xerox Ethertype)
+	  must be filled in  by  the application as well.  This cannot
+	  be performed by the  driver,	as no handle is specified in a
+	  call to the send_packet function.
+
+
+	  4.6  terminate()
+
+		  terminate(handle)		  AH == 5
+			  int handle;		  BX
+
+	  error return:
+		  carry flag set
+		  error code			  DH
+		  possible errors:
+			  BAD_HANDLE
+			  CANT_TERMINATE
+
+	  non-error return:
+		  carry flag clear
+
+	  Terminates the driver associated with handle.   If possible,
+	  the driver will exit and  allow MS-DOS to reclaim the memory
+	  it was using.
+
+
+	  4.7  get_address()
+
+		  get_address(handle, buf, len)   AH == 6
+			  int handle;		  BX
+			  char far *buf;	  ES:DI
+			  int len;		  CX
+
+
+				      - 7 -
+
+
+
+
+	  error return:
+		  carry flag set
+		  error code			  DH
+		  possible errors:
+			  BAD_HANDLE
+			  NO_SPACE
+
+	  non-error return:
+		  carry flag clear
+		  length		  CX
+
+	  Copies the local net	address  associated  with  handle into
+	  buf. The buffer buf is len bytes long.  The actual number of
+	  bytes copied is returned in CX.  If the  NO_SPACE  error  is
+	  returned, this indicates that len was  insufficient  to hold
+	  the local net address.
+
+
+	  4.8  reset_interface()
+
+		  reset_interface(handle)	  AH == 7
+			  int handle;		  BX
+
+	  error return:
+		  carry flag set
+		  error code			  DH
+		  possible errors:
+			  BAD_HANDLE
+
+	  non-error return:
+		  carry flag clear
+
+	  Resets the  interface  associated  with  handle  to  a known
+	  state, aborting any  transmits in process and reinitializing
+	  the receiver.  This call  has  been  included  primarily for
+	  circumstances where a  high-level protocol has detected what
+	  it thinks  may  be  an  interface  failure  or hang.	If the
+	  packet driver  implementor has a high level of confidence in
+	  the hardware, or the action  would  seriously  disrupt other
+	  users of the interface, this can be treated as a no-op.
+
+
+	  4.9  set_rcv_mode()
+
+	  extended driver function
+		  set_rcv_mode(handle, mode)	  AH == 20
+			  int handle;		  BX
+			  int mode;		  CX
+
+
+	  error return:
+		  carry flag set
+		  error code		  DH
+		  possible errors:
+			  BAD_HANDLE
+
+
+				      - 8 -
+
+
+
+
+			  BAD_MODE
+
+	  non-error return:
+		  carry flag clear
+
+	  Sets the  receive  mode  on  the  interface  associated with
+	  handle. The following values are accepted for mode:
+
+	  mode		meaning
+	  1		turn off receiver
+	  2		receive only packets sent to this interface
+	  3		mode 2 plus broadcast packets
+	  3		mode 3 plus limited multicast packets
+	  4		mode 3 plus all multicast packets
+	  5		all packets
+
+	  Note that not all interfaces support all modes.  The receive
+	  mode affects all packets  received  by  this	interface, not
+	  just packets associated with	the  handle  argument.	As the
+	  specification is currently written,  there  is  no provision
+	  for  programming  "perfect  filters"	to   receive  specific
+	  multicast addresses.
+
+
+	  4.10	get_rcv_mode()
+
+	  extended driver function
+		  get_rcv_mode(handle, mode)	  AH == 21
+			  int handle;		  BX
+
+
+	  error return:
+		  carry flag set
+		  error code			  DH
+		  possible errors:
+			  BAD_HANDLE
+
+	  non-error return:
+		  carry flag clear
+		  mode				  AX
+
+	  Returns the current receive mode of the interface associated
+	  with handle.
+
+
+	  4.11	get_statistics()
+
+	  extended driver function
+		  get_statistics(handle)	  AH == 24
+			  int handle;		  BX
+
+	  error return:
+		  carry flag set
+		  error code			  DH
+		  possible errors:
+
+
+				      - 9 -
+
+
+
+
+			  BAD_HANDLE
+
+	  non-error return:
+		  carry flag clear
+		  char far *stats;		  DS:SI
+
+	  statistics structure:
+		  field                   byte length
+		  packets in		  4
+		  packets out		  4
+		  bytes in		  4
+		  bytes out		  4
+		  errors in		  4
+		  errors out		  4
+		  packets dropped	  4
+
+	  Returns a pointer to a statistics structure for this handle.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				     - 10 -
+
+
+
+
+
+
+
+
+
+
+				   Appendix A
+
+			  Interface classes and types
+
+
+	  The following are defined as network interface classes, with
+	  their  individual types  listed  immediately	following  the
+	  class.
+
+	  Ethernet/IEEE 802.3		     1
+	       3COM 3C500/3C501         1
+	       3COM 3C505		2
+	       MICOM-Interlan NI5010	3
+	       BICC Data Networks 4110	4
+	       BICC Data Networks 4117	5
+	       MICOM-Interlan NP600	6
+	       Ungermann-Bass PC-NIC	8
+	       Univation NC-516         9
+	       TRW PC-2000		10
+	       MICOM-Interlan NI5210	11
+	       3COM 3C503		12
+	       3COM 3C523		13
+	       Western Digital WD8003	14
+	       Spider Systems S4	15
+
+	  ProNET-10			     2
+	       Proteon p1300		1
+
+	  IEEE 802.5/ProNET-4		     3
+	       IBM Token ring adapter	1
+	       Proteon p1340		2
+	       Proteon p1344		3
+
+	  Omninet			     4
+
+	  Appletalk			     5
+
+	  Serial line			     6
+
+	  Starlan			     7
+
+	  ArcNet			     8
+	       Datapoint RIM		1
+
+
+
+
+
+
+
+
+				     - 11 -
+
+
+
+
+
+
+
+
+
+
+				   Appendix B
+
+			     Function call numbers
+
+
+	  The following numbers are used  to  specify  which operation
+	  the packet driver should perform.  The number  is  stored in
+	  register AH on call to the packet driver.
+
+	  driver_info			1
+	  access_type			2
+	  release_type			3
+	  send_pkt			4
+	  terminate			5
+	  get_address			6
+	  reset_interface		7
+	  *set_rcv_mode                 20
+	  *get_rcv_mode                 21
+	  *set_multicast_list		22
+	  *get_multicast_list		23
+	  *get_statistics		24
+
+	  * indicates an extended packet driver function
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				     - 12 -
+
+
+
+
+
+
+
+
+
+
+				   Appendix C
+
+				  Error codes
+
+
+	  Packet driver calls indicate error by setting the carry flag
+	  on return.   The  error  code  is returned in register DH (a
+	  register not used to pass values to functions  must  be used
+	  to  return  the  error code).  The following error codes are
+	  defined:
+
+	  1    BAD_HANDLE		invalid handle number
+
+	  2    NO_CLASS                 no interfaces of specified class found
+
+	  3    NO_TYPE			no interfaces of specified type found
+
+	  4    NO_NUMBER		no interfaces of specified number found
+
+	  5    BAD_TYPE                 bad packet type specified
+
+	  6    NO_MULTICAST		this interface does not support
+					multicast
+
+	  7    CANT_TERMINATE		this packet driver cannot terminate
+
+	  8    BAD_MODE                 an invalid receiver mode was specified
+
+	  9    NO_SPACE                 operation failed because of insufficient
+					space
+
+	  10   TYPE_INUSE		the type had previously been accessed,
+					and not released.
+
+	  11   BAD_COMMAND		the command was out of range, or not
+					implemented
+
+	  12   CANT_SEND		the packet couldn't be sent (usually
+					hardware error)
+
+
+
+
+
+
+
+
+
+
+
+
+				     - 13 -
+
+
+
+
+
+
+
+
+
+
+				   Appendix D
+
+			  802.3 vs. Blue Book Ethernet
+
+
+	  One weakness of  the	present specification is that there is
+	  no provision for simultaneous support of 802.3 and Blue Book
+	  (the old DEC-Intel-Xerox standard)  Ethernet	headers.   The
+	  problem is that the  Ethertype  of  Blue  Book packets is in
+	  bytes   12   and   13  of  the  header,  and	in  802.3  the
+	  corresponding bytes  are interpreted as a length.  In 802.3,
+	  the field which would appear to be most useful to  begin the
+	  type	check in is the 802.2 header,  starting  at  byte  14.
+	  This	is  only  a  problem  on Ethernet and  variants  (e.g.
+	  Starlan), where 802.3  headers  and  Blue  Book  headers are
+	  likely to need co-exist for many years to come.
+
+	  One solution is to redefine class 1 as  Blue	Book Ethernet,
+	  and  define a parallel class for  802.3  with  802.2	packet
+	  headers.  This requires that a 2nd Packet Driver (as defined
+	  by its interrupt) be	implemented  where  it is necessary to
+	  handle both kinds of	packets,  although  they could both be
+	  part of the same TSR module.
+
+	  I am holding class  9  for this purpose, but I am interested
+	  in suggestions or comments from others.  I  would  also like
+	  to hear comments on the  entry  conditions  for  the various
+	  functions.
+
+
+					James B. VanBokkelen
+					FTP Software Inc.
+					P.O. Box 150
+					Kendall Sq. Branch P.O.
+					Boston, MA  02142
+
+					jbvb@vax.ftp.com
+					...!ftp!jbvb
+
+
+
+
+
+
+
+
+
+
+
+
+
+				     - 14 -
+
+
+
+
+
+
+
+
+
+
+				    Contents
+
+
+
+
+		  1  Introduction and Motivation . . . . . . .  2
+		  2  Identifying network interfaces  . . . . .  3
+		  3  Initiating driver operations  . . . . . .  4
+		  4  Programming interface . . . . . . . . . .  4
+		     4.1  Entry conditions . . . . . . . . . .  4
+		     4.2  driver_info()  . . . . . . . . . . .  5
+		     4.3  access_type()  . . . . . . . . . . .  5
+		     4.4  release_type() . . . . . . . . . . .  6
+		     4.5  send_pkt() . . . . . . . . . . . . .  7
+		     4.6  terminate()  . . . . . . . . . . . .  7
+		     4.7  get_address()  . . . . . . . . . . .  7
+		     4.8  reset_interface()  . . . . . . . . .  8
+		     4.9  set_rcv_mode() . . . . . . . . . . .  8
+		     4.10  get_rcv_mode()  . . . . . . . . . .  9
+		     4.11  get_statistics()  . . . . . . . . .  9
+
+	       Appendix A  Interface classes and types	       11
+
+	       Appendix B  Function call numbers	       12
+
+	       Appendix C  Error codes			       13
+
+	       Appendix D  802.3 vs. Blue Book Ethernet        14
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+					i
+

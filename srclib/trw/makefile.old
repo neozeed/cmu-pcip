@@ -1,0 +1,123 @@
+.NOSHELL
+OBJS1 = t_arp.obj t_close.obj t_conf586.obj t_data.obj t_demux.obj	\
+	t_error.obj t_init.obj
+OBJS2 = t_int.obj t_inth.obj t_net.obj t_res.obj t_send.obj t_stat.obj \
+	t_util.obj
+OBJS =  ${OBJS1} ${OBJS2}
+WOBJS = wt_init.obj wt_inth.obj wt_net.obj wt_res.obj wt_send.obj wt_stat.obj
+INC = ../../include/
+HFILES = trw-note.h trw.h trw_type.h trw_config.h trw_res.h
+
+# The -DRBD_DEBUG enables a consistency check on the RFD/RBD lists
+# it may be removed for "production" code.
+# The -DXLOOP turns on 82586 external loopback, this is useful for
+# devlopment testing, but must be removed for network use.
+# The -DTUNE_DEBUG flag checks that the configuration doesn't exceed
+# board memory.  This ought to be used when testing a new configuration.
+# The -DDEBUG flag turns on all kinds of print statements.
+
+#CFLAGS = -u -DMSC -Oat -Gs -G0 -Zd -Zl -Zp1 -I${INC}
+CFLAGS = -u -DMSC -DRBD_DEBUG -Oat -Gs -G0 -Zd -Zl -Zp1 -I${INC}
+#CFLAGS = -u -DMSC -DRBD_DEBUG -DTUNE_DEBUG -DXLOOP -Oat -Gs -G0 -Zd -Zl -Zp1 -I${INC}
+#CFLAGS = -u -DMSC -Oat -Gs -G0 -Zd -Zl -Zp1 -I${INC}
+
+AFLAGS = /Mx /Z
+
+.LOGFILE .C_V(.C)
+.LOGFILE .H_V(.H)
+.LOGFILE .ASV(.ASM)
+
+.c.obj :
+	-cl -c $(CFLAGS) $<
+
+.asm.obj:
+	-masm $<,,nul,nul $(AFLAGS)
+
+.c_v.c:
+	get -q -n $@
+
+.asv.asm:
+	get -q -n $@
+
+.h_v.h:
+	get -q -n $@
+
+
+lib:	trw4n.lib wtrw4n.lib
+
+trw4n.lib:	${OBJS}
+		+-del trw4n.lib
+		lib trw4n @trwlib.arf
+		+-del ..\..\lib\trw4n.lib
+		+copy trw4n.lib ..\..\lib
+
+wtrw4n.lib:	${WOBJS}
+		+-del wtrw4n.lib
+		lib wtrw4n @wtrwlib.arf
+		+-del ..\..\lib\wtrw4n.lib
+		+copy wtrw4n.lib ..\..\lib
+
+tlib:
+		+-del trw4n.lib
+		lib trw4n @trwlib.arf
+		+-del ..\..\lib\trw4n.lib
+		+copy trw4n.lib ..\..\lib
+
+wlib:
+		+-del wtrw4n.lib
+		lib wtrw4n @wtrwlib.arf
+		+-del ..\..\lib\wtrw4n.lib
+		+copy wtrw4n.lib ..\..\lib
+
+all:		${OBJS} ${WOBJS}
+
+t_arp.obj:	t_arp.c ${HFILES}
+
+t_close.obj:	t_close.c ${HFILES}
+
+t_conf586.obj:	t_conf586.c ${HFILES}
+
+t_data.obj:	t_data.c ${HFILES}
+
+t_demux.obj:	t_demux.c ${HFILES}
+
+t_error.obj:	t_error.c ${HFILES}
+
+t_init.obj:	t_init.c ${HFILES}
+
+wt_init.obj:	t_init.c ${HFILES}
+		-cl -c ${CFLAGS} -DWATCH -Fowt_init.obj t_init.c
+
+t_int.obj:	t_int.asm
+
+t_inth.obj:	t_inth.c ${HFILES}
+
+wt_inth.obj:	t_inth.c ${HFILES}
+		-cl -c ${CFLAGS} -DWATCH -Fowt_inth.obj t_inth.c
+
+t_net.obj:	t_net.c ${HFILES}
+
+wt_net.obj:	t_net.c ${HFILES}
+		-cl -c ${CFLAGS} -DWATCH -Fowt_net.obj t_net.c
+
+t_res.obj:	t_res.c ${HFILES}
+
+wt_res.obj:	t_res.c ${HFILES}
+		-cl -c ${CFLAGS} -DWATCH -Fowt_res.obj t_res.c
+
+t_send.obj:	t_send.c ${HFILES}
+
+wt_send.obj:	t_send.c ${HFILES}
+		-cl -c ${CFLAGS} -DWATCH -Fowt_send.obj t_send.c
+
+t_stat.obj:	t_stat.c ${HFILES}
+
+wt_stat.obj:	t_stat.c ${HFILES}
+		cl -c ${CFLAGS} -DWATCH -Fowt_stat.obj t_stat.c
+
+t_util.obj:	t_util.asm
+
+cleanobj:
+	-rm ${OBJS1}
+	-rm ${OBJS2}
+	-rm ${WOBJS}

@@ -1,0 +1,184 @@
+
+
+PC/monitor, version 1.4
+
+
+A program that monitors availability of network services, keeping a
+display that shows which are currently responding and which are not.
+
+Usage:
+
+     monitor filename
+
+PC/monitor reads the control file "filename" to determine the list of
+services to be monitored.  It then tests each service in the list.
+Following each such test it displays the name of the host of that
+service in a form that indicates the outcome of the test.  After
+completing a round of tests, PC/monitor waits for 60 seconds, then
+performs another round of tests.  An asterisk on the display indicates
+which service is currently being tested.
+
+Whenever a service responds normally, PC/monitor displays the host's
+name using normal display mode.  If a service that responded on the
+previous test fails to respond, PC/monitor displays the host's name in
+intensified mode.  If two or more successive tests of a service fail,
+PC/monitor changes the display of that host's name to blinking
+intensified mode, and sounds an audible alarm once.  The user can
+acknowledge having seen such a warning by hitting the space bar, which
+causes PC/monitor to change currently blinking names to normal
+intensity on the next round of tests.
+
+If the service responds but the response is incorrect, its host's name
+is underlined (or on a color monitor, in blue).
+
+PC/monitor switches off all debugging switches just before it starts
+to display test results.  If it notices some error while trying to
+invoke a service, it displays the host's name in inverse video.
+
+To stop the tests and exit from PC/monitor, type "q".  To start
+another round of tests without waiting for completion of the 60-second
+timeout , type "g".
+
+PC/monitor can test the following kinds of services:
+
+    1.  UDP time service.  PC/monitor sends a standard time service
+	request and watches for a time response from that server.  It
+	does not check the value of the result.
+
+    2.  UDP domain name service.  PC/monitor sends a domain name
+	service	request	for a name specified in the input file.  It
+	checks the response to verify that it is the one expected.
+
+    3.  UDP name service (IEN-116).  PC/monitor sends an old-style name
+	service	request for a name specified in the input file.  It does
+	not check value of the response.  (N.B.  Both name service and
+	domain name service test results appear in the same column of
+	the display.)
+
+    4.  ICMP echo service.  PC/monitor sends a standard echo request
+	containing 20 bytes of random data, and watches for an echo
+	response containing those 20 bytes of random data.
+
+    5.  RVD-control service.  PC/monitor sends a shutdown control
+	request with the password "x" (in anticipation that "x"
+	is not the maintenance password) and watches for a
+	response from that server, but does not check that response
+	for correctness.
+
+
+
+Control file
+
+The format of the control file is as follows:
+
+1) The file is ASCII, so it may be prepared with an ordinary text
+editor.
+
+2) White space (blanks, tabs, or new-lines) separates control inputs
+in the control file.  A control input consists of a control identifier
+followed by an equal sign, followed by control parameters separated by
+semicolons.  (Recommendation: put one token on a line, so the result
+is easy to ready and modify.)
+
+3) Following is an example of a control input describing a service to
+be tested:
+
+service=echo;multics;10.0.0.6
+
+The first parameter, "echo" in that example, could be replaced by
+"domain", "name", "rvd", "time", "time1", or "time2".  (The use of
+"time1" and "time2" is explained in point 4, below.)  The second
+parameter is the name to be displayed of the host that runs the
+service to be tested.  This name must be eleven or fewer characters in
+length.  The third parameter, containing the internet address of that
+host, is optional.  If absent, PC/monitor uses the customized name
+services to resolve the displayed name.  If present, it can be in
+either octal form (with commas) or decimal form (with decimal points).
+
+4) The display limits the number of services of any one type to 20;
+the service types "time", "time1", and "time2" place the result of a
+time test in three different columns of the display, and thus increase
+the limit on the number of time services to 60.)
+
+5) To comment out a token, insert the letter # as the first character.
+
+6)  The time between passes through the service test is normally 60
+seconds.  This time can be changed by a control line of the form
+
+pause=15
+
+where the number of seconds to pause is an integer less than 65535.
+
+7) Name service tests are performed by sending a request for the
+name provided in a control line of the form
+
+nametest=multics.mit.edu;10.0.0.6
+
+Where the name must be fewer than 30 characters in length.  (But for a
+domain name test, it must be a complete domain name.)  For checking
+the correctness of a domain name server, the corresponding internet
+address may be given in either decimal form (with periods) or octal
+form (with commas).
+
+If no nametest control line is provided, PC/monitor uses the default
+name "athena.athena.mit.edu" and looks for the response 18.58.0.1.
+
+8)  After processing the input file, PC/monitor pauses for five seconds,
+to permit review of any non-fatal warning messages that occurred during
+that processing.
+
+
+Summary of user requests accepted by PC/monitor:
+
+     q     ("quit") Exit to DOS
+
+     g     ("go") Start another round of tests.
+
+     c     ("clear") Redisplay the screen contents, in case they have
+	   been messed up by an error message.
+
+ space     ("acknowledge") Change all current blinking intense fields
+	   to blinking normal.
+
+
+Summary of display modes and their meanings:
+
+ normal			Latest test of this service was successful.
+
+ intense		Latest test of this service failed; previous
+			one was successful.
+
+ intense blinking	Two or more tests in succession failed.
+
+ normal blinking	space bar hit since two or more failed.
+
+ underlined (blue)	service responded, but with wrong answer.
+
+ inverse video		trouble encountered in trying to do this test.
+
+
+Bugs:
+
+1.  RVD service availability should be tested by sending
+server-status-request packets, not shutdown requests.
+
+2.  If more than 20 services of one type appear in the control file,
+PC/monitor muddles the display rather than reporting an error.
+
+3.  After several hours of operation, catastrophic errors begin to
+appear, first muddling the display, and then crashing the monitor.
+
+
+Customization:
+
+The following parameters of PC/monitor can be customized with the
+custom command:
+
+    1)  Internet addresses of up to five name servers.  The 
+	name servers are used to resolve those names found in the
+	control file that are not accompanied with internet
+	addresses.
+
+
+file: monitor.txt  Last updated 1/7/86.
+

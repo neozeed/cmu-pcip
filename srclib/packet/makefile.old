@@ -1,0 +1,71 @@
+.NOSHELL
+OBJS = enet.obj et_arp.obj et_close.obj et_demux.obj		\
+	et_init.obj et_int.obj et_pkt.obj et_send.obj et_stat.obj
+INC = ../../include/
+HFILES = pkt.h et_pkt.h etc-note.h
+
+CFLAGS = -u -DMSC -Oat -Gs -G0 -Zd -Zl -Zp1 -I${INC}
+
+AFLAGS = /Mx /Z
+
+.LOGFILE .C_V(.C)
+.LOGFILE .H_V(.H)
+.LOGFILE .ASV(.ASM)
+
+.c.obj :
+	-cl -c $(CFLAGS) $<
+
+.asm.obj:
+	-masm $<,,nul,nul $(AFLAGS)
+
+.c_v.c:
+	get -q -n $@
+
+.asv.asm:
+	get -q -n $@
+
+.h_v.h:
+	get -q -n $@
+
+all:	pkt4n.lib pdkill.exe pdstat.exe smash.exe
+
+lib:	pkt4n.lib
+
+pkt4n.lib:	${OBJS}
+		+-del pkt4n.lib
+		lib pkt4n @pktlib.arf
+		+-del ..\..\lib\pkt4n.lib
+		+copy pkt4n.lib ..\..\lib
+
+enet.obj:	enet.c ${HFILES}
+
+et_arp.obj:	et_arp.c ${HFILES}
+
+et_close.obj:	et_close.c ${HFILES}
+
+et_demux.obj:	et_demux.c ${HFILES}
+
+et_init.obj:	et_init.c ${HFILES}
+
+et_int.obj:	et_int.c ${HFILES}
+
+et_pkt.obj:	et_pkt.asm
+
+et_send.obj:	et_send.c ${HFILES}
+
+et_stat.obj:	et_stat.c ${HFILES}
+
+pdkill.exe:	pdkill.c pkt.h et_pkt.obj
+		-cl pdkill.c et_pkt.obj
+
+pdstat.exe:	pdstat.c pkt.h et_pkt.obj
+		-cl pdstat.c et_pkt.obj
+smash.exe:	smash.c pkt.h et_pkt.obj
+		-cl smash.c et_pkt.obj
+
+dping.exe:
+	-link ping cmd,dping, dping/map/noi,domain4n udp4n pkt4n ip4n net4n task4n pc4n h194n
+
+cleanobj:
+	-rm ${OBJS} pdkill.obj pdstat.obj
+

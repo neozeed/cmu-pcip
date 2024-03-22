@@ -1,0 +1,15 @@
++t_arp.obj	&
++t_close.obj	&
++t_conf586.obj	&
++t_data.obj	&
++t_demux.obj	&
++t_error.obj	&
++wt_init.obj	&
++t_int.obj	&
++wt_inth.obj	&
++wt_net.obj	&
++wt_res.obj	&
++wt_send.obj	&
++wt_stat.obj	&
++t_util.obj
+

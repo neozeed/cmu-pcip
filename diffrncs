@@ -1,0 +1,199 @@
+This file describes the differences between the MIT version and the CMU
+version of PCIP.  It is arranged as an outline.
+
+I. srcdev
+    A. netdev
+	1.  Netdev.sys now supports multiple NETCUST devices.  By
+	    default saying "device=netdev.sys" in your config.sys
+	    gets you a device called NETCUST:.	By adding a single
+	    letter as an argument, i.e. "device=netdev.sys 3" gets
+	    you a device called NETCUST3:.  You can have as many
+	    different NETCUST%'s as you want defined as long as
+	    they are unique.  The pcip commands know to look for a
+	    NETCUST device under a number of different names.  The
+	    first name tried is the name defined by the "NETCUST="
+	    environment variable if it exists.  I.e. saying
+	    "SET NETCUST=NETCUST1" to DOS and invoking telnet will
+	    make telnet try to open NETCUST1 first.  The next place
+	    each command looks is dependent on which device driver
+	    you are using.  3com programs will try to open NETCUST3,
+	    proNET programs will try for NETCUSTP, Interlan programs
+	    will try for NETCUSTI, and serial line programs will try
+	    for NETCUSTS.  If one of these devices cannot be opened,
+	    the program will lastly try to open the old NETCUST device
+	    for compatibility.
+
+II. srccmd
+    A. ping
+    	1.  no changes
+
+    B. setclock
+    	1.  no changes
+
+    C. hostname
+    	1.  renamed "HOSTNAME" instead of "ONETNAME" as in MIT's version.
+
+    D. netname
+    	1.  no changes
+
+    E. tftp
+    	1.  no changes
+
+    F. nicname
+    	1.  no changes
+
+    G. whois
+    	1.  Whois now supports the idea of "indirect" whois's/finger's.  I.e
+	    you can now say "whois ddp@a@b".
+
+    H. tn
+        1.  Telnet now supports terminal type subnegotiation as defined by
+	    the telnet protocol.  If your remote system also supports this,
+	    telnet will automatically define your terminal type as a
+	    ZENITH-H19.
+
+	2.  Telnet now has a user customizable "chirp" (bell).  Use the
+	    CUSTOM to customize this.  This is for those people who prefer
+	    a less (or more!) distinctive BEEP to eminate from their PC's.
+
+    	3.  Telnet now has the capability of supporting IBM 3270 emulation.
+	    Unfortunately, the code to do this is copyright by IBM and thus
+	    is not included in the MIT release.  It will soon be available
+	    separately to Universities from the University of Maryland.
+	    Contact (pcip@trantor.arpa) for more information.
+
+	4.  Telnet now exits on receipt of ICMP destination unreachable
+	    packets.  See tcp.
+
+    I. lpr
+    	1.  no changes
+
+    J. iprint
+    	1.  no changes
+
+    K. monitor
+    	1.  Monitor now has an additional command "timeout=" that may be
+	    included in its specification file.  Saying "timeout=3;" will
+	    make monitor wait for three seconds instead of its default of
+	    one before declaring a failure.
+
+    L. cookie
+    	1.  no changes
+
+    M. custom
+    	1.  Custom now supports the customization of "chirp" parameters to
+	    let you customize the bell sound made by telnet (see telnet).
+	    There are four parameters:
+
+	    1. chirp initial segment count - This is the initial value that
+	       is stuffed into the hardware that generates sound.  It
+	       determines the frequency of sound generated.
+
+	    2. chirp segment count delta - This is the amount that the initial
+	       chirp segment count is changed by for each segment of sound
+	       generated.  I.e. a chirp is a sequence of tones each differing
+	       by this amount.
+
+	    3. chirp segment length - This is the length of a single chirp
+	       segment, ie. the length of any particular tone.
+
+	    4. number of chirp segments - This is the number of segments,
+	       i.e. distinct tones, generated for a chirp.
+
+	    Basically these parameters have to be set by experimentation as
+	    they aren't in terms or physical units like seconds or Hertz.
+	    If telnet finds that the values don't make sense, it will use it's
+	    old defaults.
+
+    N. bootp
+    	1.  This is a new program included with CMU-PCIP.  Bootp implements
+	    the Bootstrap Protocol described in RFC-951.  This allows
+	    a pc to determine it's IP address by broadcasting a request
+	    on the local network containing it's hardware address.  Thus
+	    the network administrator can distribute a common netdev.sys
+	    to everyone on the network and the individual parameters will
+	    be filled in dynamically when the pc is booted.  In addition,
+	    pcip-bootp will fill in many of the other parameters in
+	    your netcust if it receives a reply with the CMU vendor
+	    supplied information filled in.  These include the network mask,
+	    the default gateway, two time servers, two name servers, and two
+	    domain name servers.  Contact ddp@andrew.cmu.edu if you would
+	    like our version of the bootp server.
+
+III. srclib
+    A. task
+    	1.  The task library now knows about the initial stack allocated by
+	    MSC and will use it effectively as possible for the main tasks
+	    stack.
+
+    B. pc
+    	1.  no changes
+
+    C. 3com
+    	1.  The 3com demux stack size has been decreased back to 1400 bytes
+	    as in the January 1985 MIT release instead of the 5400 bytes of
+	    MIT's current release.  They had increased it because of
+	    deficiencies in their h19 library.  In this release, the h19
+	    libary was fixed instead.
+
+	2.  A new function to switch the board on/off in terms of interrupts
+	    is provided.  This can be used before you push to a new command
+	    interpreter for instance.
+
+	3.  The send routine has been fixed up significantly.  You should
+	    now see many fewer dma timeouts.  Also, IP broadcasts of large
+	    packets will now work correctly.
+
+    D. interlan
+    	1.  Also uses a 1400 byte stack as in the 3com driver.
+
+    E. pronet
+    	1.  Also uses a 1400 byte stack as in the 3com driver.
+
+	2.  Now supports proNET ARP if you need it.  The driver must be
+	    compiled with the makefile.arp makefile.
+
+	3.  A new function to switch the board on/off in terms of interrupts
+	    is provided.  This can be used before you push to a new command
+	    interpreter for instance.
+
+    F. serial
+    	1.  Also uses a 1400 byte stack as in the 3com driver.
+
+    G. net
+    	1.  Knows about multiple devices.  See srcdev/netdev.
+
+    H. internet
+    	1.  Now supports upcalls on ICMP destination unreachables.
+	    BEWARE: the in_open() call was modified to support this.
+	    UDP and TCP have been changed also.
+
+    I. udp
+    	1.  Now supports upcalls on ICMP destination unreachables.
+	    Instead of changing every program that calls udp_open(),
+	    a new routine, udp_duopen(), was provided to initialize
+	    this capability.
+
+    J. tcp
+    	1.  Now supports upcalls on ICMP destination unreachables.
+	    Instead of changing every program that calls tcp_init(),
+	    a new routine, tcp_duinit(), was provided to initialize
+	    this capability.  In particular, the telnet program does
+	    call this function.
+
+    K. tftp
+    	1.  no changes
+
+    L. domain
+    	1.  no changes
+
+    M. em
+    	1.  The screen is handled in a different way than in MIT's version.
+	    This version uses BIOS to do screen scrolling instead of mucking
+	    directly with the hardware.  This avoids MANY problems and uses
+	    a standard interface.  The speed difference is barely perceptible
+	    on mono cards, however color cards are now slower.  The benefit
+	    is that there is no longer any SNOW!
+	2.  Due to 1., the screen restore function is basically a nop and thus
+	    saves 2k of stack space that was needed before.
+

@@ -1,0 +1,38 @@
+red is a simple netnews reading program.  If you run red, it
+will prompt you with a line of the following form:
+
+(current-article/last-article) subject (author) ?
+
+If you hit <cr>, you go to the next article, 'n' goes to the next
+newsgroup, 'p' goes to the previous newsgroup, '-' goes to the last
+article seen, '.' views the article, s<file> saves the article, !<cmd>
+executes a command, g<num> goes to an article with a given number in
+the current newsgroup, 'x' exits without updating the red.ini file, 'c'
+marks all articles in the current group as read and goes to the next
+newsgroup, and 'q' exits after updating the red.ini file.
+
+red keeps track of the articles you have seen already in a red.ini file
+in your home directory. Entries in the file are of the form:
+
+comp.sys.vax 123
+
+which means that the 123'rd article in comp.sys.vax is the one to be
+seen by you when you invoke red the next time. You will have to
+construct the red.ini file by hand and will have to make any changes to
+it by hand as well.  To get a complete, up-to-date list of newsgroups,
+use the command 'red -n filename'. It will create a file in red.ini
+format.  A line oriented editor with regular expressions (like 'ed') is
+most convenient to weed out unwanted newsgroups. Invalid entries in the
+red.ini file are removed or fixed quietly. You can use a different
+file instead of red.ini by setting the REDREC environment variable (the
+path is still relative to your home directory).
+
+While reading an article, every 22 lines (21 lines for the first
+screenful), you are prompted with the string 'more?' to which you can
+answer <cr> to see the next batch of lines, or '.' or 'q' to stop
+viewing this article.
+
+
+				Enjoy, Tom.
+
+Flames to /dev/null, mail to tmb@mit-prep.ARPA.
